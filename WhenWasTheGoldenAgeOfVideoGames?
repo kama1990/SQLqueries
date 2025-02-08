@@ -1,0 +1,124 @@
+# In this project, we'll explore the top 400 best-selling video games created between 1977 and 2020. 
+We'll compare a dataset on game sales with critic and user reviews to determinate whether or not video games 
+have improved as the gaming market has grown. 
+
+# The project was created during the course 'Data Analyst in SQL' which I successfully completed.
+
+# The ten best-selling video games
+
+SELECT *
+FROM game_sales
+ORDER BY games_sold DESC
+LIMIT 10;
+
+-- The best selling video games were released between 1985 to 2017
+
+# Missing review scores
+
+SELECT COUNT (g.game)
+FROM game)sales AS g
+LEFT JOIN reviews AS r
+ON g.game = r.game
+WHERE r.critic_score IS NULL
+  AND r.user_score IS NULL;
+
+-- 31 games do not have any reviews data
+
+# Years that video game critics loved
+
+SELECT
+  g.year,
+  ROUND(AVG(r.critic_score),2) AS avg_critic_score
+FROM game_sales AS g
+LEFT JOIN reviews AS r
+ON g.game = r.game
+GROUP BY g.year
+ORDER BY avg_critic_score DESC
+LIMIT 10;
+
+-- The range of great years according to critic reviews goes from 1982 - 2020. 
+-- (1990-9.80, 1992-9.67, 1998-9.32, 2020-9.20, 1993-9.10, 1995-9.07, 2004-9.03, 1982-9.00, 2002-8.99, 1999-8.93)
+
+# Was 1982 really that great?
+
+SELECT
+  g.year,
+  COUNT(g.game) AS num_games,
+  ROUND(AVG(r.critic_score), 2) AS avg_critic_score
+FROM reviews AS r
+LEFT JOIN game_sales AS g
+ON g.game = r.game
+GROUP BY g.year
+HAVING COUNT(g.game) > 4
+ORDER BY avg_critic_score DESC
+LIMIT 10;
+
+-- The num_games column convinces us that our new list of the critics' top games reflects years that had quite 
+a few well-reviewed games rather than just one or two hits. But which years dropped off the list due to having 
+four or fewer reviwed games? 
+-- (1998-10-9.32, 2004-11-9.32, 2002-9-8.99, 1999-11-8.93, 2001-13-8.82, 2011-26-8.76, 2016-13-8.67, 2013-18-8.66,
+    2008-20-8.63, 2017-13-8.62) 
+
+# Years thar dropped off critics' favorites list
+
+SELECT 
+  year,
+  avg_critic_score
+FROM top_critic_years
+EXCEPT
+SELECT
+  year,
+  avg_critic_score
+FROM top_critic_years_more_than_four_games
+ORDER BY avg_critic_score DESC;
+
+-- It looks like the early 1990s might merit consideration as the golden age of video games basted on critic_score alone, 
+but, we've need to gather more games and reviews data to do further analysis 
+-- (1990-9.80, 1992-9.67, 2020-9.20, 1993-9.10, 1995-9.07, 1982-9.00)
+
+# Years video game players loved
+
+SELECT 
+  g.year,
+  ROUND(AVG(r.user_score), 2) AS ang_user_score,
+  COUNT(g.game) AS num_games
+FROM reviews AS r
+LEFT JOUN game_sales AS g
+ON r.game = g.game
+GROUP BY year
+HAVING COUNT(g.game) > 4
+ORDER BY avg_user_score DESC
+LIMIT 10;
+
+-- We've got a list of the top ten years according to both critic reviews and user reviews. Are there any years taht
+showed up on both tables? If, so, those years would certaonly be excellent ones
+-- (1997-9.50-8, 1998-9.40-10, 2010-9.24-23, 2009-9.18-20, 2008-9.03-20, 1996-9.00-5, 2005-8.95-13, 2006-8.95-16,
+2000-8.80-8, 2002-8.80-9)
+
+# Years that both players and critics loved
+
+SELECT year
+FROM top_critic_years_more_than_four_games
+INTERSECT
+SELECT year
+FROM top_user_years_more_than_four_games;
+
+-- Looks like we've got three years taht both users and critics agreed were in the top ten.
+-- (1998, 2008, 2002)
+
+# Sales in the best video game years
+
+SELECT
+  year,
+  SUM(games_sold) AS total_games_sold
+FROM game_sales
+WHERE year IN (
+  SELECT year
+  FROM top_critic_years_more_than_four_games
+  INTERSECT
+  SELECT year
+  FROM top_user_years_more_than_four_games)
+GROUP BY year
+ORDER BY total_games_sold DESC;
+
+-- (2008-175.07, 1998-101.52, 2002-58.67)
